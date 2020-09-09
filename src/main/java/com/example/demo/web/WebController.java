@@ -13,8 +13,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import com.example.demo.kafka.Greeting;
-import com.example.demo.kafka.KafkaApplication.MessageListener;
+import com.example.demo.kafka.KafkaApplication;
 import com.example.demo.kafka.KafkaApplication.MessageProducer;
 
 @Controller
@@ -26,11 +25,19 @@ public class WebController {
 	private ApplicationContext appContext;
 	
 	@Autowired
-	private MessageProducer producerAuto;
+	private MessageProducer producer;
+	
+	@Autowired
+	private KafkaApplication kafkaApplication;
+	
 	@RequestMapping("/test")
 	public String test(HttpServletRequest request) {
 	
 		logger.debug("[START]================================================================");
+		logger.debug(String.format("[appContext][%s]", appContext));
+		logger.debug(String.format("[producer][%s]", producer));
+		logger.debug(String.format("[kafkaApplication][%s]", kafkaApplication));
+		
 		logger.debug(request.toString());
 		
 		Map map = new HashMap<String,Object>();
@@ -49,13 +56,13 @@ public class WebController {
 		map.put("id", request.getRequestedSessionId());
 		logger.debug(map.toString());
 		
-		
 		//MessageProducer producer = appContext.getBean(MessageProducer.class);
-		producerAuto.sendMessageToFiltered(map.toString());
+		//producerAuto.sendMessageToFiltered(map.toString());
+		producer.sendMessageEunjin(map.toString());
         
         //logger.debug(String.format("[producer][%s]",  producer));
         
-        logger.debug(String.format("[producerAuto][%s]",producerAuto));
+        logger.debug(String.format("[producerAuto][%s]",producer));
 		
         logger.debug("[END]================================================================");
 		return "test";

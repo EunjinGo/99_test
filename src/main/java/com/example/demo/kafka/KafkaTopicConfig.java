@@ -27,6 +27,9 @@ public class KafkaTopicConfig {
 
     @Value(value = "${greeting.topic.name}")
     private String greetingTopicName;
+    
+    @Value(value = "${eunjin.topic.name}")
+    private String eunjinTopicName;
 
     @Bean
     public KafkaAdmin kafkaAdmin() {
@@ -53,5 +56,10 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic topic4() {
         return new NewTopic(greetingTopicName, 1, (short) 1);
+    }
+    
+    @Bean
+    public NewTopic topicEunjin() {
+    	return new NewTopic(eunjinTopicName, 1, (short) 1 );
     }
 }

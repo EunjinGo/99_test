@@ -1,84 +1,35 @@
 package com.example.demo.kafka;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.TopicPartition;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.kafka.support.SendResult;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.ListenableFutureCallback;
 
 @SpringBootApplication
 public class KafkaApplication {
 
 	private static final Logger logger = Logger.getLogger(KafkaApplication.class);
+
+	private static final List list = new ArrayList<String>();
 	
-    public static void main(String[] args) throws Exception {
-
-    	logger.debug("KafkaApplication.main[START]==================================================================================");
-        ConfigurableApplicationContext context = SpringApplication.run(KafkaApplication.class, args);
-
-        MessageProducer producer = context.getBean(MessageProducer.class);
-        MessageListener listener = context.getBean(MessageListener.class);
-        /*
-         * Sending a Hello World message to topic 'baeldung'. 
-         * Must be received by both listeners with group foo
-         * and bar with containerFactory fooKafkaListenerContainerFactory
-         * and barKafkaListenerContainerFactory respectively.
-         * It will also be received by the listener with
-         * headersKafkaListenerContainerFactory as container factory.
-         */
-        producer.sendMessage("Hello, World!");
-        listener.latch.await(10, TimeUnit.SECONDS);
-
-        /*
-         * Sending message to a topic with 5 partitions,
-         * each message to a different partition. But as per
-         * listener configuration, only the messages from
-         * partition 0 and 3 will be consumed.
-         */
-        for (int i = 0; i < 5; i++) {
-            producer.sendMessageToPartition("Hello To Partitioned Topic!", i);
-        }
-        listener.partitionLatch.await(10, TimeUnit.SECONDS);
-
-        /*
-         * Sending message to 'filtered' topic. As per listener
-         * configuration,  all messages with char sequence
-         * 'World' will be discarded.
-         */
-        producer.sendMessageToFiltered("Hello Baeldung!");
-        producer.sendMessageToFiltered("Hello World!");
-        listener.filterLatch.await(10, TimeUnit.SECONDS);
-
-        /*
-         * Sending message to 'greeting' topic. This will send
-         * and received a java object with the help of
-         * greetingKafkaListenerContainerFactory.
-         */
-        producer.sendGreetingMessage(new Greeting("Greetings", "World!"));
-        listener.greetingLatch.await(10, TimeUnit.SECONDS);
-
-        context.close();
-        
-    	logger.debug("KafkaApplication.main[END]==================================================================================");        
-    }
-
+	public KafkaApplication() {
+    	logger.debug("################################################################################################");
+    	logger.debug("###KafkaApplication                                                                          ###");
+    	logger.debug("################################################################################################");
+		
+	}
+	
     @Bean
     public MessageProducer messageProducer() {
-    	logger.debug("");
+    	logger.debug("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+    	logger.debug("<<<messageProducer                                                                           <<<");
+    	logger.debug("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
     	
     	MessageProducer producer = new MessageProducer();
     	logger.debug(String.format("[return][producer][%s]", producer));
@@ -88,7 +39,9 @@ public class KafkaApplication {
 
     @Bean
     public MessageListener messageListener() {
-    	logger.debug("");
+    	logger.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+    	logger.debug(">>>messageListener                                                                           >>>");
+    	logger.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
     	MessageListener listner = new MessageListener();
     	logger.debug(String.format("[return][listner][%s]", listner));
@@ -118,6 +71,16 @@ public class KafkaApplication {
         @Value(value = "${greeting.topic.name}")
         private String greetingTopicName;
 
+        @Value(value = "${eunjin.topic.name}")
+        private String eunjinTopicName;
+        
+        public void sendMessageEunjin(String message) {
+        	logger.debug(message);
+        	logger.debug(String.format("[getDefaultTopic][%s]", kafkaTemplate.getDefaultTopic()));
+        	
+            kafkaTemplate.send(eunjinTopicName, message);
+        }
+        /*
         public void sendMessage(String message) {
 
         	logger.debug(message);
@@ -150,12 +113,22 @@ public class KafkaApplication {
         public void sendGreetingMessage(Greeting greeting) {
             greetingKafkaTemplate.send(greetingTopicName, greeting);
         }
+        */
     }
 
     public static class MessageListener {
 
     	private static final Logger logger = Logger.getLogger(MessageListener.class);
     	
+    	
+    	@KafkaListener(topics = "${eunjin.topic.name}", containerFactory = "eunjinKafkaListenerContainerFactory")
+        public void listenEunjin(String message) {
+	 		logger.debug(String.format("[message][%s]",  message));
+	        list.add(message);
+	        logger.debug(String.format("[list][%d]", list.size()));
+        }
+    	 
+    	/*
         private CountDownLatch latch = new CountDownLatch(3);
 
         private CountDownLatch partitionLatch = new CountDownLatch(2);
@@ -163,25 +136,10 @@ public class KafkaApplication {
         private CountDownLatch filterLatch = new CountDownLatch(2);
 
         private CountDownLatch greetingLatch = new CountDownLatch(1);
-
-        @KafkaListener(topics = "${message.topic.name}")
-        public void listen(String message) {
-			
-            logger.debug("Received Message : " + message);
-            logger.debug("latch.getCount(): " + latch.getCount());
-            latch.countDown();
-            logger.debug("latch.getCount(): " + latch.getCount());
-        }
+        
         
         @KafkaListener(topics = "${message.topic.name}", groupId = "foo", containerFactory = "fooKafkaListenerContainerFactory")
         public void listenGroupFoo(String message) {
-			/*
-			 * logger.debug("Received Message in group 'foo': " + message);
-			 * logger.debug("latch.getCount(): " + latch.getCount());
-			 * latch.countDown(); logger.debug("latch.getCount(): " +
-			 * latch.getCount());
-			 */
-            
             logger.debug("Received Message in group 'foo': " + message);
             logger.debug("latch.getCount(): " + latch.getCount());
             latch.countDown();
@@ -227,7 +185,8 @@ public class KafkaApplication {
             this.greetingLatch.countDown();
             logger.debug("greetingLatch.getCount(): " + greetingLatch.getCount());
         }
-
+        */
+        
     }
 
 }
